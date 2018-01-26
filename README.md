@@ -20,8 +20,7 @@ Only necessary if it isn't installed yet.
 ```sh
 $ cd ~/
 $ wget https://github.com/xianyi/OpenBLAS/archive/v0.2.20.tar.gz
-$ tar -zxvf v0.2.20.tar.gz
-$ rm v0.2.20.tar.gz
+$ tar -zxvf v0.2.20.tar.gz && rm v0.2.20.tar.gz
 $ cd OpenBLAS-0.2.20
 $ make -j"$(nproc)"
 $ sudo make PREFIX=/usr install
@@ -32,8 +31,7 @@ Only necessary if it isn't installed yet or your version is lower than *0.191*.
 ```sh
 $ cd ~/
 $ wget https://github.com/google/leveldb/archive/v1.20.tar.gz
-$ tar -zxvf v1.20.tar.gz
-$ rm v1.20.tar.gz
+$ tar -zxvf v1.20.tar.gz && rm v1.20.tar.gz
 $ cd leveldb-1.20
 $ make -j"$(nproc)"
 $ sudo scp -r out-static/lib* out-shared/lib* /usr/local/lib/
@@ -50,8 +48,7 @@ Only necessary if it isn't installed yet.
 ```sh
 $ cd ~/
 $ wget https://github.com/libjpeg-turbo/libjpeg-turbo/archive/1.5.3.tar.gz
-$ tar -zxvf 1.5.3.tar.gz
-$ rm 1.5.3.tar.gz
+$ tar -zxvf 1.5.3.tar.gz && rm 1.5.3.tar.gz
 $ sudo rm -f /usr/lib/libjpeg.so*
 $ cd libjpeg-turbo-1.5.3
 $ autoreconf -fiv
@@ -67,14 +64,12 @@ $ sudo make install
 ### Install OpenCV
 Unfortunately the building process won't work if OpenCV 3.2.0 isn't installed with the right cmake values. That's why I **STRONGLY** recommend this reinstallation (remove the old *opencv* and *opencv_contrib* folder first, in case they exist).
 ```sh
-$ sudo apt-get install liblapacke-dev
+$ sudo apt-get install build-essential cmake gfortran git pkg-config unzip ffmpeg qtbase5-dev python python3 python-dev python3-dev python-numpy python3-numpy libopencv-dev libgtk-3-dev libdc1394-22 libdc1394-22-dev libjpeg-dev libpng12-dev libtiff5-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev libtbb-dev libfaac-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev libx264-dev v4l-utils python-vtk liblapacke-dev libopenblas-dev libgdal-dev libatlas-base-dev -y
 $ cd ~/
 $ wget https://github.com/opencv/opencv/archive/3.2.0.tar.gz
-$ tar -zxvf 3.2.0.tar.gz
-$ rm 3.2.0.tar.gz
+$ tar -zxvf 3.2.0.tar.gz && rm 3.2.0.tar.gz
 $ wget https://github.com/opencv/opencv_contrib/archive/3.2.0.tar.gz
-$ tar -zxvf 3.2.0.tar.gz
-$ rm 3.2.0.tar.gz
+$ tar -zxvf 3.2.0.tar.gz && rm 3.2.0.tar.gz
 $ cd opencv-3.2.0
 $ mkdir release
 $ cd release
