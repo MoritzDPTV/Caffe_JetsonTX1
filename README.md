@@ -11,8 +11,8 @@ Before we install Caffe, we need to install a few packages manually to avoid dep
 This step is optional and just in order to gain some more space, as LibreOffice isn't used on the Jetson TX1 anyway.
 ```sh
 $ sudo apt-get remove --purge libreoffice*
-$ sudo apt-get autoclean
 $ sudo apt-get autoremove
+$ sudo apt-get autoclean
 ```
 
 ### Install OpenBLAS
@@ -64,7 +64,7 @@ $ sudo make install
 ### Install OpenCV
 Unfortunately the building process won't work if OpenCV 3.2.0 isn't installed with the right cmake values. That's why I **STRONGLY** recommend this reinstallation (remove the old *opencv* and *opencv_contrib* folder first, in case they exist).
 ```sh
-$ sudo apt-get install build-essential cmake gfortran git pkg-config unzip ffmpeg qtbase5-dev python python3 python-dev python3-dev python-numpy python3-numpy libopencv-dev libgtk2.0-dev libgtk-3-dev libdc1394-22 libdc1394-22-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev libtbb2 libtbb-dev libfaac-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev libx264-dev v4l-utils python-vtk liblapacke-dev libopenblas-dev libgdal-dev libatlas-base-dev -y
+$ sudo apt-get install build-essential cmake gfortran git pkg-config unzip doxygen ffmpeg qtbase5-dev python python3 python-dev python3-dev python-numpy python3-numpy libgtk2.0-dev libgtk-3-dev libdc1394-22 libdc1394-22-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev libtbb2 libtbb-dev libfaac-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev libx264-dev v4l-utils python-vtk liblapacke-dev libopenblas-dev libgdal-dev libatlas-base-dev -y
 $ cd ~/
 $ wget https://github.com/opencv/opencv/archive/3.2.0.tar.gz
 $ tar -zxvf 3.2.0.tar.gz && rm 3.2.0.tar.gz
