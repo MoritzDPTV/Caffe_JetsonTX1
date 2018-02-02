@@ -87,6 +87,6 @@ $ cd ~/
 $ git clone https://github.com/MoritzDPTV/Caffe_JetsonTX1.git
 $ cd Caffe_JetsonTX1
 $ sudo ./jetson_clocks.sh
-$ sudo ./install_caffe.sh
+$ ./install_caffe.sh
 ```
 After a system reboot everything should work.
