@@ -20,6 +20,7 @@ sudo apt-get install --no-install-recommends libboost-all-dev libboost-filesyste
 
 # Remaining Python dependencies
 sudo apt-get install python-dev python-numpy python-pip python-scipy python-pydot python-skimage python-sklearn python-all-dev python-h5py python-matplotlib python-opencv python-pil -y
+sudo pip install -U pip
 sudo pip install django==1.11.9
 
 
