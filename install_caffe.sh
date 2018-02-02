@@ -58,7 +58,7 @@ sudo sed -i 's/# WITH_PYTHON_LAYER := 1/WITH_PYTHON_LAYER := 1/' ~/caffe/Makefil
 
 # Add paths and right CUDA architecture settings
 sudo sed -i 's|CUDA_DIR := /usr/local/cuda|CUDA_DIR := /usr/local/cuda-8.0|g' ~/caffe/Makefile.config
-sudo sed -i 's/		-gencode arch=compute_50,code=sm_50/		-gencode arch=compute_50,code=sm_50 -gencode arch=compute_53,code=sm_53/' ~/caffe/Makefile.config
+sudo sed -i 's/		-gencode arch=compute_50,code=compute_50/		-gencode arch=compute_53,code=sm_53 \\\n		-gencode arch=compute_53,code=compute_53/' ~/caffe/Makefile.config
 sudo sed -i 's|INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include|INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include /usr/include/hdf5/serial|g' ~/caffe/Makefile.config
 sudo sed -i 's|LIBRARY_DIRS := $(PYTHON_LIB) /usr/local/lib /usr/lib|LIBRARY_DIRS := $(PYTHON_LIB) /usr/local/lib /usr/lib /usr/lib/aarch64-linux-gnu /usr/lib/aarch64-linux-gnu/hdf5/serial|g' ~/caffe/Makefile.config
 
