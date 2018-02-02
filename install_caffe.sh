@@ -14,7 +14,7 @@ sudo apt-get install doxygen -y
 
 
 # General dependencies
-sudo apt-get install libprotobuf-dev libleveldb-dev libsnappy-dev libhdf5-serial-dev libopencv-dev libgflags-dev libgoogle-glog-dev liblmdb-dev libatlas-base-dev protobuf-compiler -y
+sudo apt-get install libprotobuf-dev libleveldb-dev libsnappy-dev libhdf5-serial-dev libgflags-dev libgoogle-glog-dev liblmdb-dev libatlas-base-dev protobuf-compiler -y
 sudo apt-get install --no-install-recommends libboost-all-dev libboost-filesystem-dev libboost-python-dev libboost-system-dev libboost-thread-dev build-essential gfortran -y
 
 
