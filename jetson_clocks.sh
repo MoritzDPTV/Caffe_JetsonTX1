@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2015-2016, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2015-2017, NVIDIA CORPORATION. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,14 +40,15 @@ usage()
 		echo -e ${RED}"$1"${NC}
 	fi
 
-		echo "usage:"
-
 		cat >& 2 <<EOF
-		jetson_clocks.sh [options]
-		options,
-		--show                display current settings
-		--store [file]        store current settings to a file (default: /home/ubuntu/l4t_dfs.conf)
-		--restore [file]      restore saved settings from a file (default: /home/ubuntu/l4t_dfs.conf)
+Maximize jetson performance by setting static max frequency to CPU, GPU and EMC clocks.
+Usage:
+jetson_clocks.sh [options]
+  options,
+  --show             display current settings
+  --store [file]     store current settings to a file (default: \${HOME}/l4t_dfs.conf)
+  --restore [file]   restore saved settings from a file (default: \${HOME}/l4t_dfs.conf)
+  run jetson_clocks.sh without any option to set static max frequency to CPU, GPU and EMC clocks.
 EOF
 
 	exit 0
@@ -55,18 +56,22 @@ EOF
 
 restore()
 {
-	for conf in `cat $CONF_FILE`; do
+	for conf in `cat "${CONF_FILE}"`; do
 		file=`echo $conf | cut -f1 -d :`
 		data=`echo $conf | cut -f2 -d :`
-		case $file in
+		case "${file}" in
 			/sys/devices/system/cpu/cpu*/online |\
-			/sys/kernel/debug/clock/override*/state )
+			/sys/kernel/debug/clk/override*/state)
 				if [ `cat $file` -ne $data ]; then
-					echo $data > $file
+					echo "${data}" > "${file}"
 				fi
 				;;
+			/sys/devices/system/cpu/cpu*/cpufreq/scaling_min_freq |\
+			/sys/kernel/debug/tegra_cpufreq/*_CLUSTER/cc3/enable)
+				echo "${data}" > "${file}" 2>/dev/null
+				;;
 			*)
-				echo $data > $file
+				echo "${data}" > "${file}"
 				ret=$?
 				if [ ${ret} -ne 0 ]; then
 					echo "Error: Failed to restore $file"
@@ -80,7 +85,7 @@ store()
 {
 	for file in $@; do
 		if [ -e "${file}" ]; then
-			echo "$file:`cat $file`" >> $CONF_FILE
+			echo "${file}:`cat ${file}`" >> "${CONF_FILE}"
 		fi
 	done
 }
@@ -88,11 +93,8 @@ store()
 do_fan()
 {
 	# Jetson-TK1 CPU fan is always ON.
-	if [ -e /sys/devices/soc0/machine ]; then
-		machine=`cat /sys/devices/soc0/machine`
-		if [ "${machine}" = "jetson-tk1" ] ; then
+	if [ "${machine}" = "jetson-tk1" ] ; then
 			return
-		fi
 	fi
 
 	if [ ! -w /sys/kernel/debug/tegra_fan/target_pwm ]; then
@@ -100,25 +102,25 @@ do_fan()
 		return
 	fi
 
-	case $ACTION in
+	case "${ACTION}" in
 		show)
 			echo "Fan: speed=`cat /sys/kernel/debug/tegra_fan/target_pwm`"
 			;;
 		store)
-			store /sys/kernel/debug/tegra_fan/target_pwm
+			store "/sys/kernel/debug/tegra_fan/target_pwm"
 			;;
 		*)
 			FAN_SPEED=255
-			echo $FAN_SPEED > /sys/kernel/debug/tegra_fan/target_pwm
+			echo "${FAN_SPEED}" > /sys/kernel/debug/tegra_fan/target_pwm
 			;;
 	esac
 }
 
 do_clusterswitch()
 {
-	case $ACTION in
+	case "${ACTION}" in
 		show)
-			if [ -d /sys/kernel/cluster ]; then
+			if [ -d "/sys/kernel/cluster" ]; then
 				ACTIVE_CLUSTER=`cat /sys/kernel/cluster/active`
 				echo "CPU Cluster Switching: Active Cluster ${ACTIVE_CLUSTER}"
 			else
@@ -126,14 +128,14 @@ do_clusterswitch()
 			fi
 			;;
 		store)
-			if [ -d /sys/kernel/cluster ]; then
+			if [ -d "/sys/kernel/cluster" ]; then
 				store "/sys/kernel/cluster/immediate"
 				store "/sys/kernel/cluster/force"
 				store "/sys/kernel/cluster/active"
 			fi
 			;;
 		*)
-			if [ -d /sys/kernel/cluster ]; then
+			if [ -d "/sys/kernel/cluster" ]; then
 				echo 1 > /sys/kernel/cluster/immediate
 				echo 0 > /sys/kernel/cluster/force
 				echo G > /sys/kernel/cluster/active
@@ -144,79 +146,110 @@ do_clusterswitch()
 
 do_hotplug()
 {
-	CPU_HOTPLUG_STAT=`cat /sys/devices/system/cpu/cpuquiet/tegra_cpuquiet/enable`
-
-	case $ACTION in
+	case "${ACTION}" in
 		show)
-			echo "CPU HOTPLUG: $CPU_HOTPLUG_STAT"
 			echo "Online CPUs: `cat /sys/devices/system/cpu/online`"
-			for folder in /sys/devices/system/cpu/cpu[0-9]; do
-				if [ -e "${folder}/cpufreq/scaling_cur_freq" ]; then
-					CPU=`echo ${folder} | cut -c 25-`
-					echo "$CPU: `cat ${folder}/cpufreq/scaling_cur_freq`"
-				fi
-			done
 			;;
 		store)
-			store "/sys/devices/system/cpu/cpuquiet/tegra_cpuquiet/enable"
-			for file in /sys/devices/system/cpu/cpu*/online; do
-				store $file
+			for file in /sys/devices/system/cpu/cpu[0-9]/online; do
+				store "${file}"
 			done
 			;;
 		*)
-			echo 0 > /sys/devices/system/cpu/cpuquiet/tegra_cpuquiet/enable
-			for file in /sys/devices/system/cpu/cpu*/online; do
-				if [ `cat $file` -eq 0 ]; then
-					echo 1 > $file
-				fi
-			done
+			if [ "${SOCFAMILY}" != "tegra186" ]; then
+				for file in /sys/devices/system/cpu/cpu*/online; do
+					if [ `cat $file` -eq 0 ]; then
+						echo 1 > "${file}"
+					fi
+				done
+			fi
 	esac
 }
 
 do_cpu()
 {
-	FRQ_GOVERNOR=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
-	CPU_MIN_FREQ=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq`
-	CPU_MAX_FREQ=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq`
-	CPU_CUR_FREQ=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq`
+	FREQ_GOVERNOR="cpufreq/scaling_governor"
+	CPU_MIN_FREQ="cpufreq/scaling_min_freq"
+	CPU_MAX_FREQ="cpufreq/scaling_max_freq"
+	CPU_CUR_FREQ="cpufreq/scaling_cur_freq"
+	CPU_SET_SPEED="cpufreq/scaling_setspeed"
+	INTERACTIVE_SETTINGS="/sys/devices/system/cpu/cpufreq/interactive"
+	SCHEDUTIL_SETTINGS="/sys/devices/system/cpu/cpufreq/schedutil"
 
-	case $ACTION in
+	case "${ACTION}" in
 		show)
-			echo "CPU frequency Governor: $FRQ_GOVERNOR"
-			echo "CPU MinFreq=$CPU_MIN_FREQ MaxFreq=$CPU_MAX_FREQ CurrentFreq=$CPU_CUR_FREQ"
+			for folder in /sys/devices/system/cpu/cpu[0-9]; do
+				CPU=`basename ${folder}`
+				if [ -e "${folder}/${FREQ_GOVERNOR}" ]; then
+					echo "$CPU: Gonvernor=`cat ${folder}/${FREQ_GOVERNOR}`" \
+						"MinFreq=`cat ${folder}/${CPU_MIN_FREQ}`" \
+						"MaxFreq=`cat ${folder}/${CPU_MAX_FREQ}`" \
+						"CurrentFreq=`cat ${folder}/${CPU_CUR_FREQ}`"
+				fi
+			done
 			;;
 		store)
-			store "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"
+			store "/sys/module/qos/parameters/enable"
 
-			if [ -d /sys/devices/system/cpu/cpufreq/$FRQ_GOVERNOR ]; then
-				store `find /sys/devices/system/cpu/cpufreq/$FRQ_GOVERNOR -type f -perm -g+r`
+			for file in \
+				/sys/devices/system/cpu/cpu[0-9]/cpufreq/scaling_min_freq; do
+				store "${file}"
+			done
+
+			if [ "${SOCFAMILY}" = "tegra186" ]; then
+				store "/sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable"
+				store "/sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable"
 			fi
 			;;
 		*)
-			echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-			echo $CPU_MAX_FREQ >  /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+			echo 0 > /sys/module/qos/parameters/enable
+
+			if [ "${SOCFAMILY}" = "tegra186" ]; then
+				echo 0 > /sys/kernel/debug/tegra_cpufreq/M_CLUSTER/cc3/enable 2>/dev/null
+				echo 0 > /sys/kernel/debug/tegra_cpufreq/B_CLUSTER/cc3/enable 2>/dev/null
+			fi
+
+			for folder in /sys/devices/system/cpu/cpu[0-9]; do
+				cat "${folder}/${CPU_MAX_FREQ}" > "${folder}/${CPU_MIN_FREQ}" 2>/dev/null
+			done
 			;;
 	esac
 }
 
 do_gpu()
 {
-	GPU_MIN_FREQ=`cat /sys/kernel/debug/clock/override.gbus/min`
-	GPU_MAX_FREQ=`cat /sys/kernel/debug/clock/override.gbus/max`
-	GPU_CUR_FREQ=`cat /sys/kernel/debug/clock/override.gbus/rate`
-	GPU_FREQ_OVERRIDE=`cat /sys/kernel/debug/clock/override.gbus/state`
-
-	case $ACTION in
-		show)
-			echo "GPU MinFreq=$GPU_MIN_FREQ MaxFreq=$GPU_MAX_FREQ CurrentFreq=$GPU_CUR_FREQ FreqOverride=$GPU_FREQ_OVERRIDE"
+	case "${SOCFAMILY}" in
+		tegra186)
+			GPU_MIN_FREQ="/sys/devices/17000000.gp10b/devfreq/17000000.gp10b/min_freq"
+			GPU_MAX_FREQ="/sys/devices/17000000.gp10b/devfreq/17000000.gp10b/max_freq"
+			GPU_CUR_FREQ="/sys/devices/17000000.gp10b/devfreq/17000000.gp10b/cur_freq"
+			GPU_RAIL_GATE="/sys/devices/17000000.gp10b/railgate_enable"
 			;;
-		store)
-			store /sys/kernel/debug/clock/override.gbus/rate
-			store /sys/kernel/debug/clock/override.gbus/state
+		tegra210)
+			GPU_MIN_FREQ="/sys/devices/57000000.gpu/devfreq/57000000.gpu/min_freq"
+			GPU_MAX_FREQ="/sys/devices/57000000.gpu/devfreq/57000000.gpu/max_freq"
+			GPU_CUR_FREQ="/sys/devices/57000000.gpu/devfreq/57000000.gpu/cur_freq"
+			GPU_RAIL_GATE="/sys/devices/57000000.gpu/railgate_enable"
 			;;
 		*)
-			echo $GPU_MAX_FREQ > /sys/kernel/debug/clock/override.gbus/rate
-			echo 1 > /sys/kernel/debug/clock/override.gbus/state
+			echo "Error! unsupported SOC ${SOCFAMILY}"
+			exit 1;
+			;;
+	esac
+
+	case "${ACTION}" in
+		show)
+			echo "GPU MinFreq=`cat ${GPU_MIN_FREQ}`" \
+				"MaxFreq=`cat ${GPU_MAX_FREQ}`" \
+				"CurrentFreq=`cat ${GPU_CUR_FREQ}`"
+			;;
+		store)
+			store "${GPU_MIN_FREQ}"
+			store "${GPU_RAIL_GATE}"
+			;;
+		*)
+			echo 0 > "${GPU_RAIL_GATE}"
+			cat "${GPU_MAX_FREQ}" > "${GPU_MIN_FREQ}"
 			ret=$?
 			if [ ${ret} -ne 0 ]; then
 				echo "Error: Failed to max GPU frequency!"
@@ -227,49 +260,60 @@ do_gpu()
 
 do_emc()
 {
-	EMC_MIN_FREQ=`cat /sys/kernel/debug/clock/override.emc/min`
-	EMC_MAX_FREQ=`cat /sys/kernel/debug/clock/override.emc/max`
-	EMC_CUR_FREQ=`cat /sys/kernel/debug/clock/override.emc/rate`
-	EMC_FREQ_OVERRIDE=`cat /sys/kernel/debug/clock/override.emc/state`
-
-	case $ACTION in
-		show)
-			echo "EMC MinFreq=$EMC_MIN_FREQ MaxFreq=$EMC_MAX_FREQ CurrentFreq=$EMC_CUR_FREQ FreqOverride=$EMC_FREQ_OVERRIDE"
+	case "${SOCFAMILY}" in
+		tegra186)
+			EMC_ISO_CAP="/sys/kernel/nvpmodel_emc_cap/emc_iso_cap"
+			EMC_MIN_FREQ="/sys/kernel/debug/bpmp/debug/clk/emc/min_rate"
+			EMC_MAX_FREQ="/sys/kernel/debug/bpmp/debug/clk/emc/max_rate"
+			EMC_CUR_FREQ="/sys/kernel/debug/clk/emc/clk_rate"
+			EMC_UPDATE_FREQ="/sys/kernel/debug/bpmp/debug/clk/emc/rate"
+			EMC_FREQ_OVERRIDE="/sys/kernel/debug/bpmp/debug/clk/emc/mrq_rate_locked"
 			;;
-		store)
-			store /sys/kernel/debug/clock/override.emc/rate
-			store /sys/kernel/debug/clock/override.emc/state
+		tegra210)
+			EMC_MIN_FREQ="/sys/kernel/debug/tegra_bwmgr/emc_min_rate"
+			EMC_MAX_FREQ="/sys/kernel/debug/tegra_bwmgr/emc_max_rate"
+			EMC_CUR_FREQ="/sys/kernel/debug/clk/override.emc/clk_rate"
+			EMC_UPDATE_FREQ="/sys/kernel/debug/clk/override.emc/clk_update_rate"
+			EMC_FREQ_OVERRIDE="/sys/kernel/debug/clk/override.emc/clk_state"
 			;;
 		*)
-			echo $EMC_MAX_FREQ > /sys/kernel/debug/clock/override.emc/rate
-			echo 1 > /sys/kernel/debug/clock/override.emc/state
+			echo "Error! unsupported SOC ${SOCFAMILY}"
+			exit 1;
+			;;
+
+	esac
+
+	if [ "${SOCFAMILY}" = "tegra186" ]; then
+		emc_cap=`cat "${EMC_ISO_CAP}"`
+		emc_fmax=`cat "${EMC_MAX_FREQ}"`
+		if [ "$emc_cap" -gt 0 ] && [ "$emc_cap" -lt  "$emc_fmax" ]; then
+			EMC_MAX_FREQ="${EMC_ISO_CAP}"
+		fi
+	fi
+
+	case "${ACTION}" in
+		show)
+			echo "EMC MinFreq=`cat ${EMC_MIN_FREQ}`" \
+				"MaxFreq=`cat ${EMC_MAX_FREQ}`" \
+				"CurrentFreq=`cat ${EMC_CUR_FREQ}`" \
+				"FreqOverride=`cat ${EMC_FREQ_OVERRIDE}`"
+			;;
+		store)
+			store "${EMC_FREQ_OVERRIDE}"
+			;;
+		*)
+			cat "${EMC_MAX_FREQ}" > "${EMC_UPDATE_FREQ}"
+			echo 1 > "${EMC_FREQ_OVERRIDE}"
 			;;
 	esac
 }
 
-check_uptime()
-{
-
-if [ -e "/proc/uptime" ]; then
-	uptime=`cat /proc/uptime | cut -d '.' -f1`
-
-	if [ $((uptime)) -lt 90 ]; then
-		printf "Error: Please run the script after $((90 - uptime)) Seconds, \
-\notherwise ubuntu init script may override the clock settings!\n"
-		exit -1
-	fi
-else
-	printf "Warning: Could not check system uptime. Please make sure that you run the script 90 Seconds after bootup, \
-\notherwise ubuntu init script may override the clock settings!\n"
-fi
-}
-
 main ()
 {
-	check_uptime
 	while [ -n "$1" ]; do
 		case "$1" in
 			--show)
+				echo "SOC family:${SOCFAMILY}  Machine:${machine}"
 				ACTION=show
 				;;
 			--store)
@@ -294,7 +338,8 @@ main ()
 		shift 1
 	done
 
-	[ `whoami` != root ] && echo Error: Run this script\($0\) as a root user && exit 1
+	[ `whoami` != root ] && \
+		echo Error: Run this script\($0\) as a root user && exit 1
 
 	case $ACTION in
 		store)
@@ -322,13 +367,34 @@ main ()
 			;;
 	esac
 
-	do_cpu
 	do_hotplug
 	do_clusterswitch
+	do_cpu
 	do_gpu
 	do_emc
 	do_fan
 }
+
+if [ -e "/sys/devices/soc0/family" ]; then
+	SOCFAMILY="`cat /sys/devices/soc0/family`"
+	if [ -e "/sys/devices/soc0/machine" ]; then
+		machine=`cat /sys/devices/soc0/machine`
+	fi
+elif [ -e "/proc/device-tree/compatible" ]; then
+	grep "nvidia,tegra210" /proc/device-tree/compatible &>/dev/null
+	if [ $? -eq 0 ]; then
+		SOCFAMILY="tegra210"
+	else
+		grep "nvidia,tegra186" /proc/device-tree/compatible &>/dev/null
+		if [ $? -eq 0 ]; then
+			SOCFAMILY="tegra186"
+		fi
+	fi
+
+	if [ -e "/proc/device-tree/model" ]; then
+		machine="`cat /proc/device-tree/model`"
+	fi
+fi
 
 main $@
 exit 0

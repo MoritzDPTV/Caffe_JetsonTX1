@@ -2,6 +2,7 @@
 # Caffe installation script for Jetson TX1 by MDPTV
 
 
+
 # Updating the system
 sudo add-apt-repository universe
 sudo apt-get update
@@ -14,12 +15,12 @@ sudo apt-get install doxygen -y
 
 
 # General dependencies
-sudo apt-get install libprotobuf-dev libleveldb-dev libsnappy-dev libhdf5-serial-dev libgflags-dev libgoogle-glog-dev liblmdb-dev libatlas-base-dev protobuf-compiler -y
-sudo apt-get install --no-install-recommends libboost-all-dev libboost-filesystem-dev libboost-python-dev libboost-system-dev libboost-thread-dev build-essential gfortran -y
+sudo apt-get install libprotobuf-dev libleveldb-dev libsnappy-dev libhdf5-serial-dev libgflags-dev libgoogle-glog-dev liblmdb-dev libatlas-base-dev libopenblas-dev protobuf-compiler libgtk2.0-dev libgtk-3-dev libdc1394-22 libdc1394-22-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev libtbb2 libtbb-dev libfaac-dev libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev libx264-dev liblapacke-dev libgdal-dev pkg-config unzip ffmpeg v4l-utils qtbase5-dev build-essential gfortran -y
+sudo apt-get install --no-install-recommends libboost-all-dev libboost-filesystem-dev libboost-python-dev libboost-system-dev libboost-thread-dev -y
 
 
 # Remaining Python dependencies
-sudo apt-get install python-dev python-numpy python-pip python-scipy python-pydot python-skimage python-sklearn python-all-dev python-h5py python-matplotlib python-opencv python-pil -y
+sudo apt-get install python python3 python-dev python3-dev python-numpy python3-numpy python-pip python-scipy python-pydot python-skimage python-sklearn python-all-dev python-h5py python-matplotlib python-opencv python-pil python-vtk -y
 sudo pip install -U pip
 sudo pip install django==1.11.9
 
@@ -58,15 +59,19 @@ sudo sed -i 's/# WITH_PYTHON_LAYER := 1/WITH_PYTHON_LAYER := 1/' ~/caffe/Makefil
 
 
 # Add paths and right CUDA architecture settings
-sudo sed -i 's|CUDA_DIR := /usr/local/cuda|CUDA_DIR := /usr/local/cuda-8.0|g' ~/caffe/Makefile.config
+sudo sed -i 's|CUDA_DIR := /usr/local/cuda|CUDA_DIR := /usr/local/cuda-9.0|g' ~/caffe/Makefile.config
 sudo sed -i 's/		-gencode arch=compute_50,code=compute_50/		-gencode arch=compute_53,code=sm_53 \\\n		-gencode arch=compute_53,code=compute_53/' ~/caffe/Makefile.config
 sudo sed -i 's|INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include|INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include /usr/include/hdf5/serial|g' ~/caffe/Makefile.config
 sudo sed -i 's|LIBRARY_DIRS := $(PYTHON_LIB) /usr/local/lib /usr/lib|LIBRARY_DIRS := $(PYTHON_LIB) /usr/local/lib /usr/lib /usr/lib/aarch64-linux-gnu /usr/lib/aarch64-linux-gnu/hdf5/serial|g' ~/caffe/Makefile.config
 
 
+# To provide that caffe models with different image sizes can be launched
+sudo sed -i "s/                raise ValueError('Mean shape incompatible with input shape.')/                print(self.inputs[in_])\\n                in_shape = self.inputs[in_][1:]\\n                m_min, m_max = mean.min(), mean.max()\\n                normal_mean = (mean - m_min) \\/ (m_max - m_min)\\n                mean = resize_image(normal_mean.transpose((1,2,0)),in_shape[1:]).transpose((2,0,1)) * (m_max - m_min) + m_min\\n                #raise ValueError('Mean shape incompatible with input shape.')/" ~/caffe/python/caffe/io.py
+
+
 # To be able to call "import caffe" from Python and to run DIGITS
-sudo sed -i  '$a export CAFFE_ROOT=/home/ubuntu/caffe' ~/.bashrc
-sudo sed -i  '$a export PYTHONPATH=/home/ubuntu/caffe/python:$PYTHONPATH' ~/.bashrc
+sudo sed -i  '$a export CAFFE_ROOT=/home/nvidia/caffe' ~/.bashrc
+sudo sed -i  '$a export PYTHONPATH=/home/nvidia/caffe/python:$PYTHONPATH' ~/.bashrc
 source ~/.bashrc
 
 
@@ -82,7 +87,7 @@ cd build
 cmake ../ -DCUDA_USE_STATIC_CUDA_RUNTIME=OFF
 make -j"$(nproc)"
 make pycaffe -j"$(nproc)"
-make install
+sudo make install
 
 
 # Runtest
