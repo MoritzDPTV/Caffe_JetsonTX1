@@ -53,7 +53,7 @@ $ sudo rm -r libjpeg-turbo-1.5.3
 
 
 
-## Finally we can install Caffe
+## Install Caffe
 Now we can finally install Caffe, which then will work after a system reboot:
 
 ```sh
